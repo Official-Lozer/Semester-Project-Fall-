@@ -27,3 +27,6 @@ Similarly, a single clickable area in this section directs the user to the setti
 
 Play Area: 
 This section features a back button that, when clicked, returns to the main menu. The game instructions are straightforward: clicking on the leftmost bird activates user control within defined boundaries. Subsequent clicks and drags move the bird along the mouse path. Upon release, the bird is propelled in the opposite direction of the previous drag. During flight, collisions with obstacles result in their disappearance and point accumulation. If the bird exits the window frame, a new bird regenerates in the initial position, limited in number to enhance the game's challenge and entertainment value. 
+
+Music:
+The game includes two different music that play simultaneouly, the first one being played at all times other than playa area, while the secondary music works as a music for suspense creation in the play area.
