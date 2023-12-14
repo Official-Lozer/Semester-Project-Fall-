@@ -1,4 +1,4 @@
-//CODE STARTS HERE
+// This code includes the main game and excludes the game logic
 #include <SFML/Graphics.hpp>
 #include <SFML/Audio.hpp>
 #include <iostream>
@@ -345,4 +345,3 @@ int main() {
 
     return 0;
 }
-//CODE ENDS HERE
