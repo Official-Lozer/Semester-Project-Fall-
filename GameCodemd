@@ -1,0 +1,184 @@
+//This code includes the game logic which includes the flight of the bird and destruction of obstacles alongwith scoring of the points
+
+#include <SFML/Graphics.hpp>
+#include <iostream>
+#include <vector>
+
+
+using namespace std;
+using namespace sf;
+
+//Setting up paths for bird and obstacle
+const string birdPath = "C:/Users/DELL/OneDrive/Desktop/Programs/Assets/Images/bird.jpg";
+const string obstaclePath = "C:/Users/DELL/OneDrive/Desktop/Programs/Assets/Images/obstacle.jpg";
+
+//Making function for loading image
+void loadImage(Texture& texture, Sprite& sprite, const string& imagePath, int originX, int originY) {
+    if (!texture.loadFromFile(imagePath)) {
+        cout << "Error in showing image file: " << imagePath <<  endl;
+        exit(0);
+    }
+    sprite.setTexture(texture);
+    sprite.setPosition(originX, originY);
+}
+//Making function for resizing the sprites
+void resizeSprite(Sprite& sprite, float scaleX, float scaleY) {
+    sprite.setScale(scaleX, scaleY);
+}
+
+bool birdIsClicked = false;
+bool birdIsLaunching = false;
+int birdRegenerations;                      //Introducing basic booleans
+bool obstacleIsKilled = false;
+
+Vector2f birdPosition(30, 100);     // Initial position of bird sprite
+Vector2f launchVelocity;
+vector<Vector2f> obstaclePositions(5);
+vector<Sprite> obstacleSprites(5);                    //Introducing basic vectors
+vector<bool> isObstacleDestroyed(5);
+
+Texture birdTexture, obstacleTexture;
+Sprite birdSprite, obstacleSprite;
+
+int score = 0;  
+
+void resetGame() {
+    birdPosition = Vector2f(30, 100);    //New position for the bird
+    loadImage(birdTexture, birdSprite, birdPath, birdPosition.x, birdPosition.y);      //Loading the bird image
+    birdIsClicked = false;
+    birdIsLaunching = false;
+    birdRegenerations = 3;                 //Setting up basic bools
+    score = 0;  
+
+   //Resizing the bird sprite
+    resizeSprite(birdSprite, 0.1, 0.1);
+
+
+    //Loop to make the obstacles appear in finite spaces
+    for (int i = 0; i < 5; ++i) { 
+        obstaclePositions[i] = Vector2f(600, 50 + i * 100);
+        loadImage(obstacleTexture, obstacleSprites[i], obstaclePath, obstaclePositions[i].x, obstaclePositions[i].y);
+        isObstacleDestroyed[i] = false;
+
+        resizeSprite(obstacleSprites[i], 0.25, 0.25);
+    }
+}
+
+int main() {
+    resetGame();
+
+    Vector2f launchStartPosition;       //Make 2D vector for launch position
+    RenderWindow window(VideoMode(800, 600), "The Wing Warriors");     //Make new window for game
+
+    while (window.isOpen()) {
+        Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == Event::Closed) {
+                window.close();
+            }
+            else if (event.type == Event::MouseButtonPressed && event.mouseButton.button == Mouse::Left) {   //Enables mouse click
+                if (!birdIsLaunching && birdRegenerations > 0) {                   //Checks if bird is not launching and still has regenerations left
+                    birdIsClicked = true;                                                                    //Handles mouse click
+                    launchStartPosition = static_cast<Vector2f>(Mouse::getPosition(window));   //Launch start pos it set to current mouse position
+                }
+            }
+            else if (event.type == Event::MouseButtonReleased && event.mouseButton.button == Mouse::Left) {   //Enables mouse click
+                if (birdIsClicked && birdRegenerations > 0) {         //Checks if birdIsClicked and has regenerations left
+                    birdIsClicked = false;          
+                    Vector2f launchEndPosition = static_cast<Vector2f>(Mouse::getPosition(window));        //Set end position at mouse position
+                    launchVelocity = launchStartPosition - launchEndPosition;
+                    birdIsLaunching = true;
+                    birdRegenerations--;        //Cut off one of the regenerations
+                }
+            }
+        }
+
+        if (birdIsClicked) {
+            Vector2f currentMousePosition = static_cast<Vector2f>(Mouse::getPosition(window));  //To get the position of birdie accoding to the mouse click
+            float distance = sqrt(pow(currentMousePosition.x - birdPosition.x, 2) +     //Using distance formula 
+                pow(currentMousePosition.y - birdPosition.y, 2));
+            float angle = atan2(currentMousePosition.y - birdPosition.y, currentMousePosition.x - birdPosition.x);   //Using arctan2=(y,x) formula for angle
+            float radius = min(100.0f, distance);     //To stop inflation of the bird sprite
+            birdSprite.setPosition(birdPosition + Vector2f(cos(angle) * radius, sin(angle) * radius)); //Determining the new position by converting polar into cartesian coordinates
+        }
+        else if (birdIsLaunching) {
+            birdPosition += launchVelocity * 0.01f;     //Setting up the bird's new position
+            birdSprite.setPosition(birdPosition);
+
+            if (birdPosition.x < 0 || birdPosition.y < 0 || birdPosition.x > window.getSize().x ||
+                birdPosition.y > window.getSize().y) {
+                birdIsLaunching = false;                     //To make the bird disappear if it gets out of window border
+
+                if (birdRegenerations > 0) {
+                    birdPosition = Vector2f(30, 300);          //Regenerating the bird if regenerations are left
+                    birdSprite.setPosition(birdPosition);
+                }
+            }
+        }
+
+        int remainingObstacles = 0;          
+        for (int i = 0; i < static_cast<int>(obstacleSprites.size()); ++i) {            //Checking if obstacles are destroyed
+            if (!isObstacleDestroyed[i]) {                           
+                remainingObstacles++;
+                if (birdSprite.getGlobalBounds().intersects(obstacleSprites[i].getGlobalBounds())) {
+                    isObstacleDestroyed[i] = true;                   //Checking if bird and obstacle collide
+                    cout << "Obstacle hit! You killed a monster!" << endl;
+
+                    
+                    score += 10;
+                    cout << "Score: " << score << endl;                 // Update the score when an obstacle is destroyed
+
+                    if (!birdIsLaunching && birdRegenerations > 0) {
+                        birdPosition = Vector2f(30.0f, 300.0f);
+                        birdSprite.setPosition(birdPosition);                  //Setting up the new position of bird 
+                        birdIsLaunching = false;
+                    }
+                }
+            }
+        }
+
+        window.clear();            
+        window.draw(birdSprite);     //Drawing basic graphics of bird sprite
+
+        for (int i = 0; i < static_cast<int>(obstacleSprites.size()); ++i) {
+            if (!isObstacleDestroyed[i]) {               //Drawing basic graphics of obstacle sprite
+                window.draw(obstacleSprites[i]);              
+            }
+        }
+
+        window.display();
+
+        if (remainingObstacles == 0) {
+            cout << "You win!" << endl;
+            cout << "Score: " << score << endl;
+            cout << "Do you want to replay (r) or go to the next level (n)? ";
+            char choice;                          //Setting up user input for replay case
+            cin >> choice;
+
+            if (choice == 'r') {
+                resetGame();
+            }
+            else if (choice == 'n') {
+                cout << "You proceed to the next level!" << endl;
+                window.close();
+            }
+        }
+        else if (remainingObstacles > 0 && birdRegenerations == 0) {
+            cout << "You lose!" << endl;
+            cout << "Score: " << score << endl;       //Setting up user input for retry case
+            cout << "Do you want to retry? -y/n- ";
+            char choice;
+            cin >> choice;
+
+            if (choice == 'y') {
+                resetGame();
+            }
+            else {
+                window.close();
+            }
+        }
+    }
+
+    return 0;
+}
+
